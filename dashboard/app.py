@@ -1,41 +1,110 @@
-import pandas as pd
+"""
+This app creates an animated sidebar using the dbc.Nav component and some local
+CSS. Each menu item has an icon, when the sidebar is collapsed the labels
+disappear and only the icons remain. Visit www.fontawesome.com to find
+alternative icons to suit your needs!
+dcc.Location is used to track the current location, a callback uses the current
+location to render the appropriate page content. The active prop of each
+NavLink is set automatically according to the current pathname. To use this
+feature you must install dash-bootstrap-components >= 0.11.0.
+For more details on building multi-page Dash applications, check out the Dash
+documentation: https://dash.plot.ly/urls
+"""
 import dash
-import dash_core_components as dcc
-import dash_html_components as html
-from dash.dependencies import Input, Output
-import os
+import dash_bootstrap_components as dbc
+from dash import Input, Output, dcc, html
+import pandas as pd
+import os, chardet
+from config import df, colors
+
+print(dash.__version__)
 
 
-p = os.path.join(os.getcwd(),'..','data_dashboard','CD_20230407')
-print(f'p = {p}')
-datafile = os.path.join(p,'df_main_spm_results.csv')
-print(f'datafile = {datafile}')
-# Read the CSV file into a pandas DataFrame
-df = pd.read_csv(datafile)
+# Initialize the Dash
 
-# Initialize the Dash app
-app = dash.Dash(__name__)
+app = dash.Dash(__name__, 
+                use_pages=True, 
+                external_stylesheets=[
+                    dbc.themes.BOOTSTRAP, 
+                    dbc.icons.FONT_AWESOME
+                    ])
 
-# Define the layout of the dashboard
-app.layout = html.Div([
-    dcc.Dropdown(
-        id='column-dropdown',
-        options=[{'label': col, 'value': col} for col in df.columns],
-        value=df.columns[0]
-    ),
-    html.Div(id='mean-output')
-])
 
-# Define the callback function that updates the output
-@app.callback(
-    Output('mean-output', 'children'),
-    [Input('column-dropdown', 'value')]
+
+sidebar = html.Div(
+    [
+        html.Div(
+            [
+                # width: 3rem ensures the logo is the exact width of the
+                # collapsed sidebar (accounting for padding)
+                html.Img(src=app.get_asset_url('logo.png'), className='logo', style={"width": "3rem"}),
+                html.H2("DatAV", style={'color': colors['font1']}),
+            ],
+            className="sidebar-header",
+        ),
+        html.Hr(),
+        dbc.Nav(
+            [
+                dbc.NavLink(
+                    [html.I(className="fas fa-home me-2"), html.Span("Home")],
+                    href="/",
+                    active="exact",
+                ),
+                dbc.NavLink(
+                    [
+                        html.I(className="fas fa-calendar-alt me-2"),
+                        html.Span("Calendar"),
+                    ],
+                    href="/pg2",
+                    active="exact",
+                ),
+                dbc.NavLink(
+                    [
+                        html.I(className="fas fa-envelope-open-text me-2"),
+                        html.Span("Messages"),
+                    ],
+                    href="/pg3",
+                    active="exact",
+                ),
+                dbc.NavLink(
+                    [
+                        html.I(className="fa-solid fa-chart-simple me-2"),
+                        html.Span("GLM"),
+                    ],
+                    href="/pg4",
+                    active="exact",
+                ),
+            ],
+            vertical=True,
+            pills=True,
+        ),
+    ],
+    className="sidebar",
 )
-def update_output(column_name):
-    selected_column = df[column_name]
-    mean_value = selected_column.mean()
-    return f"Mean value of '{column_name}': {mean_value:.2f}"
 
-# Run the app
-if __name__ == '__main__':
+content = html.Div(
+            [
+                # content of each page
+                dash.page_container    
+            ],
+            className='content',
+            style={'background-color':colors['background-color']}
+        )
+
+app.layout = dbc.Container(
+    [
+        dcc.Location(id="url"), 
+        sidebar,
+        content,
+        dcc.Store(id='data-store')
+    ],
+    fluid=True,
+    style={'background-color':colors['background-color']}
+)
+from pages.pg4 import register_callbacks_pg4
+from pages.pg1 import register_callbacks_pg1
+register_callbacks_pg4(app)
+register_callbacks_pg1(app)
+if __name__ == "__main__":
     app.run_server(debug=True)
+
