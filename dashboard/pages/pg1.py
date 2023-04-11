@@ -86,6 +86,34 @@ layout = html.Div(
         ),
         html.Div(
             id='output-data-upload'
+        ),
+        html.Div(className='general-spacing'),
+         # the Dataframe
+        html.Div(
+            children = [
+            html.Details([
+                html.Summary('Loaded Dataframe ... Click to expand', style={'background-color':colors['background-color']}),
+                dash_table.DataTable(
+                    id = 'pg1_datatable',
+                    
+                    style_table={
+                        'width': '100%',
+                    },
+                    style_header={
+                        'backgroundColor':'black',
+                        'color': colors['font1'],
+                        'fontWeight': 'bold'
+                    }, 
+                    style_data={
+                        'color': colors['font1'],
+                        'backgroundColor': colors['background-panel']
+                    },
+                                
+                )
+            ],
+            )
+            ],
+            
         )
     ],
     style={
@@ -93,6 +121,7 @@ layout = html.Div(
         'color': colors['font1'],
         'padding': '10px'
     }
+
 )
 
 # def create_table(dfx):
@@ -148,7 +177,8 @@ def register_callbacks_pg1(app):
             State('upload-data', 'filename'),
             prevent_initial_call=True
     )
-    def update_output(contents, filename):
+    def update_data_store_from_uploaded_file(contents, filename):
+        print(f"start update data-store from uploaded file")
         if contents is not None:
             children, df = parse_contents(contents, filename)
             #children = [children]
@@ -163,44 +193,30 @@ def register_callbacks_pg1(app):
         )
     def set_dataframe_beer_googles(n_clicks):
         if n_clicks>0:
+            print(f"button beer-googles was pressed")
             with open(config.datafile_beer_googles, 'rb') as f:
                 result = chardet.detect(f.read())
             df = pd.read_csv(config.datafile_beer_googles, delimiter = '|', encoding=result['encoding'], engine='python')
-            config.df = df.copy()
-            config.df_org = df.copy()
+            print(f"df loaded with ... ")
+            print(f"{df.head()}")
+
             return df.to_json(date_format='iso', orient='split')
         else:
             return None
 
-    # @app.callback(
-    #     Output('data-store', 'data'),
-    #     Input('filter-button', 'n_clicks'),
-    #     State('textarea-filter','value')
-    # )
-    # def filter_dataframe(n_clicks, df_filter_string):
-    #     if n_clicks>0:
-    #         df = df_org.copy()
-    #         try:
-    #             if df_filter_string:
-    #                 df_filtered = df.query(df_filter_string)
-    #             else:
-    #                 df_filtered = df
-    #         except Exception as e:
-    #             print('error:', e)
-    #             df_filtered = df
-    #         df = df_org.copy()
-    #         return df_filtered.to_json(date_format='iso', orient='split')
-    #     else:
-    #         return None
 
-# df = px.data.gapminder()
-
-# layout = html.Div(
-#     [
-#         #dcc.Markdown('# This will be the content of Page 1', id = 'content-pg1')
-#         dcc.Dropdown([x for x in df.continent.unique()], id='cont-choice', style={'width':'50%'}),
-#         dcc.Graph(id='line-fig',
-#                   figure=px.histogram(df, x='continent', y='lifeExp', histfunc='avg'))
-#     ]
-# )
-
+    @app.callback(
+        Output('pg1_datatable', 'data'),
+        [Input('data-store', 'data')],
+        prevent_initial_call=True
+        )
+    def update_datatable(jsonified_data):
+        try:
+            if jsonified_data:
+                df = pd.read_json(jsonified_data, orient='split')
+                return df.to_dict('records')
+            else:
+                return None
+        except Exception as e:
+            print('error:', e)
+            return None

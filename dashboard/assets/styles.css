@@ -86,10 +86,25 @@ body {
     background-color: #171339;
   }
 
-  .my-dropdown .Select-menu-outer {
-    background-color: var(--background-panel); /* set your desired color here */
-}
+  .Select-menu-outer {
+    background-color: var(--background-panel); 
+  }
 
+    /* Set the background color of the dropdown control */
+  .my-dropdown .Select-control {
+    background-color: var(--background-panel);
+    color: var(--font1);
+  }
+
+  /* Set the background color of the dropdown menu */
+  .my-dropdown .Select-menu-outer {
+    background-color: var(--background-panel);
+    color: var(--font1);
+  }
+
+  .my-dropdown .Select-menu-outer .Select-option {
+    color: var(--font1);
+  }
  /* The standard button */
   .standard-button {
     /* background-color: var(--background-panel); */
@@ -99,7 +114,7 @@ body {
     /* background-color: #9c27b0;  */
     /* background-color: #ff9800 ;  */
     /* background-color: #4caf50;  */
-    /* background-color:#390678; */
+    /* background-color:#390678;  */
     background-color: #5865f2; 
     color: var(--font1);
 }

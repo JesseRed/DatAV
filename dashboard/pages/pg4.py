@@ -1,5 +1,5 @@
 import dash
-from config import df, colors, df_org
+from config import colors 
 from dash import Input, Output, State, dcc, html, dash_table
 import statsmodels.api as sm
 from statsmodels.formula.api import ols
@@ -91,11 +91,13 @@ layout = html.Div(
                         html.Label('Select dependent var'),
                         dcc.Dropdown(
                             id='column-dropdown',
-                            options=[{'label': html.Span([col], style={'color': colors['font1'], 'background-color': colors['background-panel']}), 'value': col} for col in df.columns],
-                            value=df.columns[2],
+                            #options=[{'label': html.Span([col], style={'color': colors['font1'], 'background-color': colors['background-panel']}), 'value': col} for col in df.columns],
+                            options=[{'label': html.Span(['select col']), 'value': 'select col'} ],
+                            value='select col',
                             style={
                                 'width': '200px',
-                                'background-color': colors['background-panel'], 
+                                'background-color': colors['background-panel'],
+                                'color': colors['font1'],
                                 },
                             className='my-dropdown'
                         )
@@ -106,12 +108,11 @@ layout = html.Div(
                         html.Label('Select independent variables'),
                         dcc.Dropdown(
                             id="column-dropdown2",
-                            options=[{'label': html.Span([col], style={'color': colors['font1'], 'background-color': colors['background-panel']}), 'value': col} for col in df.columns],
-                            value=df.columns[0],
+                            options=[{'label': html.Span(['select col'], style={'color': colors['font1'], 'background-color': colors['background-panel']}), 'value': 'select col'} ],
+                            value='select col',
+                            # options=[{'label': html.Span([col], style={'color': colors['font1'], 'background-color': colors['background-panel']}), 'value': col} for col in df.columns],
+                            # value=df.columns[0],
                             multi=True,
-                            style={
-                                'background-color': colors['background-panel'], 
-                                },
                             className='my-dropdown'
                         ),
                     ],
@@ -122,8 +123,8 @@ layout = html.Div(
         html.Div(
             children = [
                 dcc.Checklist(
-                    options = ['New York City', 'Montréal', 'San Francisco'],
-                    value = ['New York City', 'Montréal'],
+                    # options = ['New York City', 'Montréal', 'San Francisco'],
+                    # value = ['New York City', 'Montréal'],
                     labelStyle={'display': 'inline-block', 'margin-right': '15px'},
                     id = 'checklist_interaction2',
                 )
@@ -164,11 +165,12 @@ layout = html.Div(
                             html.Label('Select y'),
                             dcc.Dropdown(
                                 id='pg4-dropdown-boxplot-org-1',
-                                options=[{'label': html.Span([col], style={'color': colors['font1'], 'background-color': colors['background-panel']}), 'value': col} for col in df.columns],
-                                value=df.columns[2],
+                                options=[{'label': html.Span(['select col'], style={'color': colors['font1'], 'background-color': colors['background-panel']}), 'value': 'select col'} ],
+                                value='select col',
+                                # options=[{'label': html.Span([col], style={'color': colors['font1'], 'background-color': colors['background-panel']}), 'value': col} for col in df.columns],
+                                # value=df.columns[2],
                                 style={
                                     'width': '200px',
-                                    'background-color': colors['background-panel'], 
                                     },
                                 className='my-dropdown'
                             )
@@ -179,12 +181,11 @@ layout = html.Div(
                             html.Label('Select x'),
                             dcc.Dropdown(
                                 id="pg4-dropdown-boxplot-org-2",
-                                options=[{'label': html.Span([col], style={'color': colors['font1'], 'background-color': colors['background-panel']}), 'value': col} for col in df.columns],
-                                value=df.columns[0],
+                                options=[{'label': html.Span(['select col'], style={'color': colors['font1'], 'background-color': colors['background-panel']}), 'value': 'select col'} ],
+                                value='select col',
+                                # options=[{'label': html.Span([col], style={'color': colors['font1'], 'background-color': colors['background-panel']}), 'value': col} for col in df.columns],
+                                # value=df.columns[0],
                                 multi=True,
-                                style={
-                                    'background-color': colors['background-panel'], 
-                                    },
                                 className='my-dropdown'
                                 
                             ),
@@ -211,9 +212,8 @@ layout = html.Div(
 
                 dash_table.DataTable(
                     id = 'pg4_datatable',
-                    columns = [{"name": i, "id": i} for i in df.columns],
-                    data = df.to_dict('records'),
-                    style_table = {
+                    
+                    style_table={
                         'width': '100%',
                     },
                     style_header={
@@ -254,11 +254,17 @@ def register_callbacks_pg4(app):
         Output('data-store', 'data', allow_duplicate=True),
         Input('filter-button', 'n_clicks'),
         State('textarea-filter','value'),
+        State('data-store', 'data'),
         prevent_initial_call=True
     )
-    def filter_dataframe(n_clicks, df_filter_string):
+    def filter_dataframe(n_clicks, df_filter_string, jsonified_data):
+        # print(f"filter_dataframe start...")
+        # print(f"filter string = {df_filter_string}")
         if n_clicks>0:
-            df = df_org.copy()
+            #print(f"filter_dataframe in nclicks...")
+            df = pd.read_json(jsonified_data, orient='split')
+
+            #print(f"{df.head()}")
             try:
                 if df_filter_string:
                     df_filtered = df.query(df_filter_string)
@@ -267,10 +273,9 @@ def register_callbacks_pg4(app):
             except Exception as e:
                 print('error:', e)
                 df_filtered = df
-            df = df_org.copy()
             return df_filtered.to_json(date_format='iso', orient='split')
         else:
-            return None
+            return jsonified_data
 
     @app.callback(
         Output('table-output', 'children'),
@@ -281,9 +286,22 @@ def register_callbacks_pg4(app):
         State('data-store', 'data'),
         State('column-dropdown', 'value'),
         State('column-dropdown2', 'value'),
-        State('checklist_interaction2', 'value')
+        State('checklist_interaction2', 'value'),
+        prevent_initial_call=True
     )
     def update_output(n_clicks, jsonified_filtered_data, dependent_variable, independent_variables, interactions2):
+        """update the Multivariate Regression output
+
+        Args:
+            n_clicks (_type_): _description_
+            jsonified_filtered_data (_type_): _description_
+            dependent_variable (_type_): _description_
+            independent_variables (_type_): _description_
+            interactions2 (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
         if n_clicks>0:
             if jsonified_filtered_data:
                 df_filtered = pd.read_json(jsonified_filtered_data, orient='split')
@@ -354,9 +372,15 @@ def register_callbacks_pg4(app):
         Output('pg4-boxplot-org', 'figure'),
         Input('pg4-dropdown-boxplot-org-1', 'value'),
         Input('pg4-dropdown-boxplot-org-2', 'value'),
-        Input('data-store', 'data'))
+        State('data-store', 'data'),
+        prevent_initial_call=True
+    )
     def update_boxplot(selected_column_y, selected_column_x, jsonified_cleaned_data):
-        if jsonified_cleaned_data:
+        fig = go.Figure()
+        fig.update_layout(title='No Data to Display')
+        if selected_column_x == 'select col' or selected_column_y == 'select col':
+            return fig
+        elif jsonified_cleaned_data:
             dff = pd.read_json(jsonified_cleaned_data, orient='split')
             #print(f"dff ....")
             #print(dff.head(10))
@@ -366,31 +390,29 @@ def register_callbacks_pg4(app):
             fig = go.Figure()
             fig.update_layout(title='No Data to Display')
             return fig
-        # else:
-        #     print(f"no jsonfified data")
-        #     df = pd.read_csv("https://raw.githubusercontent.com/mwaskom/seaborn-data/master/tips.csv")
-        #     fig=px.box(df, x="day", y="total_bill", color="smoker")
-        #     return fig
-    
+        
     @app.callback(
         Output('pg4_datatable', 'data'),
-        [Input('data-store', 'data')])
+        [Input('data-store', 'data')],
+        prevent_initial_call=True
+        )
     def update_table(jsonified_cleaned_data):
         try:
             if jsonified_cleaned_data:
                 dff = pd.read_json(jsonified_cleaned_data, orient='split')
                 return dff.to_dict('records')
             else:
-                return df.to_dict('records')
+                return None
         except Exception as e:
             print('error:', e)
-            return df.to_dict('records')
+            return None
 
 
     @app.callback(
     Output('checklist_interaction2', 'options'),
     Output('checklist_interaction2', 'value'),
-    Input('column-dropdown2', 'value')
+    Input('column-dropdown2', 'value'),
+    prevent_initial_call=True
     )
     def update_checklist_interactions2_options(selected_columns):
         options = []
@@ -410,3 +432,16 @@ def register_callbacks_pg4(app):
             print(f"unknown type in update_checklist_interactions2_options found")
 
         return options, value
+    
+
+    
+    for dropdown in ['column-dropdown','column-dropdown2','pg4-dropdown-boxplot-org-1','pg4-dropdown-boxplot-org-2']:
+        @app.callback(
+        Output(dropdown, 'options'),
+        Input('data-store', 'data')
+        )
+        def update_column_dropdown(jsonified_data):
+            df = pd.read_json(jsonified_data, orient='split')
+            #return [{'label': col,  'value': col} for col in df.columns]
+            #return [{'label': html.Span([col], style={'color': colors['font1'], 'background-color': colors['background-panel']}), 'value': col} for col in df.columns],
+            return [{'label': html.Span([col], style={'color': colors['font1'], 'background-color': colors['background-panel']}), 'value': col} for col in df.columns]
