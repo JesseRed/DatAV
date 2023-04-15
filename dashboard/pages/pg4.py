@@ -8,6 +8,8 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objs as go
 from markupsafe import Markup
+from plotly.subplots import make_subplots
+import numpy as np
 
 dash.register_page(__name__)
 
@@ -197,7 +199,9 @@ layout = html.Div(
             #pg4-dropdown-boxplot-org-1
             html.Div(
                 children = [
-                    dcc.Graph(id='pg4-boxplot-org')
+                    dcc.Graph(id='pg4-boxplot-org_1', style={'display':'none'}),
+                    dcc.Graph(id='pg4-boxplot-org_2', style={'display':'none'}),
+                    dcc.Graph(id='pg4-boxplot-org_3', style={'display':'none'}),
                 ]
             )
             ])
@@ -367,30 +371,284 @@ def register_callbacks_pg4(app):
         else:
             return None, None, None
 
-
     @app.callback(
-        Output('pg4-boxplot-org', 'figure'),
+        Output('pg4-boxplot-org_1', 'figure'),
+        Output('pg4-boxplot-org_1', 'style'),
+        Output('pg4-boxplot-org_2', 'figure'),
+        Output('pg4-boxplot-org_2', 'style'),
+        Output('pg4-boxplot-org_3', 'figure'),
+        Output('pg4-boxplot-org_3', 'style'),
         Input('pg4-dropdown-boxplot-org-1', 'value'),
         Input('pg4-dropdown-boxplot-org-2', 'value'),
         State('data-store', 'data'),
         prevent_initial_call=True
     )
     def update_boxplot(selected_column_y, selected_column_x, jsonified_cleaned_data):
+        # https://plotly.com/python/reference/
+        fig_1 = go.Figure()
+        fig_1.update_layout(title='No Data to Display')
+        fig_2 = go.Figure()
+        fig_2.update_layout(title='No Data to Display')
+        fig_3 = go.Figure()
+        fig_3.update_layout(title='No Data to Display')
+        new_style_1= {'display':'none'}
+        new_style_2= {'display':'none'}
+        new_style_3= {'display':'none'}
+        
+        if jsonified_cleaned_data:
+            dff = pd.read_json(jsonified_cleaned_data, orient='split')
+            #fig = px.box(dff, x='alcohol', y='attractiveness', color='gender', points='all',boxmode='overlay', notched=True)
+            if len(selected_column_x) == 1:
+                #fig = go.Figure()
+                #fig.add_trace(go.Box(x=[1, 2, 3], y=[2, 1, 2]))
+                #fig.add_trace(go.Box(x=dff[selected_column_x[0]], y=dff[selected_column_y], 
+                #                     marker = {'color': 'green'}))
+                fig_1 = px.box(dff, x=selected_column_x, y=selected_column_y)
+                new_style_1['display']='block'
+                #print(fig)
+                #trace_1 = go.box(dff, x=selected_column_x[0], y=selected_column_y)
+                #fig.add_trace(trace_1)
+            if len(selected_column_x) == 2:
+                fig_1 = make_subplots(
+                    rows=2, cols=2,
+                    specs=[[{}, {}],
+                        [{"colspan": 2}, None]],
+                    subplot_titles=(selected_column_x[0],selected_column_x[1], 
+                                    (f"{selected_column_x[0]} & {selected_column_x[1]}")
+                                    )
+                                    )
+                # fig_tmp = px.box(dff, x=selected_column_x, y=selected_column_y)
+                fig_1.add_trace(go.Box(x=dff[selected_column_x[0]], y=dff[selected_column_y]),
+                                row=1, col=1)
+                fig_1.add_trace(go.Box(x=dff[selected_column_x[1]], y=dff[selected_column_y]),
+                                row=1, col=2)
+                fig_1.add_trace(go.Box(x=[1, 2, 3], y=[2, 1, 2]),
+                                row=2, col=1)
+                new_style_1['display'] = 'block'
+
+                fig_2 = px.box(dff, x=selected_column_x, y=selected_column_y, color=selected_column_x[1])
+                new_style_2= {'display':'block'}
+                
+                fig_3 = px.box(dff, x=selected_column_x, y=selected_column_y, color=selected_column_x[0])
+                new_style_3= {'display':'block'}
+                
+                # fig.add_trace(go.Scatter(x=[1, 2], y=[1, 2]),
+                #                                 row=1, col=1)
+
+                # fig.add_trace(go.Scatter(x=[1, 2], y=[1, 2]),
+                #                 row=1, col=2)
+                # fig.add_trace(go.Scatter(x=[1, 2, 3], y=[2, 1, 2]),
+                #                 row=2, col=1)
+
+                fig_1.update_layout(showlegend=False, title_text="Specs with Subplot Title")
+                
+
+        return fig_1, new_style_1, fig_2, new_style_2, fig_3, new_style_3
+                #fig.add_trace(fig2.data[0], row=1, col=2)
+            #     figS1 = make_subplots(rows=2, cols=1, subplot_titles=("first", "second"))
+            #     # figA = px.box(dff, x=selected_column_x, y=selected_column_y)
+            #     # figS1.add_trace(figA.data[0], row=1, col=1)
+            #     figS1.add_trace(go.Scatter(x=[1, 2, 3], y=[4, 5, 6], mode='lines'), row=1, col=1)
+            #     figS2 = make_subplots(rows=1, cols=2, subplot_titles=("first", "second"))
+            #     #fig1 = px.box(dff, x=selected_column_x[0], y=selected_column_y)
+            #     #fig2 = px.box(dff, x=selected_column_x[1], y=selected_column_y)
+            #     figS2.add_trace(go.Scatter(x=[1, 2, 3], y=[4, 5, 6], mode='lines'), row=1, col=1)
+            #     figS2.add_trace(go.Scatter(x=[1, 2, 3], y=[4, 5, 6], mode='lines'), row=1, col=2)
+            #     #figS2.add_trace(fig1.data[0], row=1, col=1)
+            #     #figS2.add_trace(fig2.data[0], row=1, col=2)
+            #     figS1.add_trace(figS2, row=2, col=1)
+            #     return figS1
+            #fig1 = px.box(dff, x=selected_column_x, y=selected_column_y)
+        #     return fig
+        #     if len(selected_column_x) == 2:
+        #         figS1 = make_subplots(rows=2, cols=1, subplot_titles=("first", "second"))
+        #         fig1 = px.box(dff, x=selected_column_x[0], y=selected_column_y)
+        #         fig2 = px.box(dff, x=selected_column_x[1], y=selected_column_y)
+        #         figS1.add_trace(fig1.data[0], row=1, col=1)
+        #         figS1.add_trace(fig2.data[0], row=1, col=1)
+        #         figS1.add_trace(go.Scatter(x=[1, 2, 3], y=[4, 5, 6], mode='lines'), row=2, col=1)
+        #         figS1.update_xaxes(title_text=selected_column_x[0], row=1, col=1)
+        #         figS1.update_xaxes(title_text=selected_column_x[1], row=1, col=2)
+        #         figS1.update_yaxes(title_text=selected_column_y, row=1, col=1)
+        #         figS1.update_layout(height=600, width=800, title_text="Box Plots")
+        #         return figS1
+        # return fig
+        #     if isinstance(selected_column_x, list) and len(selected_column_x) == 2:
+        #         figM = make_subplots(rows=1, cols=2, subplot_titles=(selected_column_x[0], selected_column_x[1]))
+
+        #         figM.add_trace(fig1.data[0], row=1, col=1)
+        #         figM.add_trace(fig2.data[0], row=1, col=2)
+        #         if len(selected_column_x) == 2:
+        #             figA = px.box(dff, x=selected_column_x[0], y=selected_column_y)
+        #             figB = make_subplots(rows=1, cols=2, subplot_titles=(selected_column_x[0], selected_column_x[1]))
+        #             figB.add_trace(figA.data[0], row=1, col=1)
+        #             figB.add_trace(figM.data[0], row=1, col=2)
+        #             return figB
+        #         else:
+        #             return figM
+        #     else:
+        #         figA = px.box(dff, x=selected_column_x, y=selected_column_y)
+        #         return figA
+        # else:
+        #     fig = go.Figure()
+        #     fig.update_layout(title='No Data to Display')
+        #     return fig
+
+    # @app.callback(
+    #     Output('pg4-boxplot-org', 'figure'),
+    #     Input('pg4-dropdown-boxplot-org-1', 'value'),
+    #     Input('pg4-dropdown-boxplot-org-2', 'value'),
+    #     State('data-store', 'data'),
+    #     prevent_initial_call=True
+    # )
+    # def update_boxplot(selected_column_y, selected_column_x, jsonified_cleaned_data):
+    #     fig = go.Figure()
+    #     fig.update_layout(title='No Data to Display')
+    #     if selected_column_x == 'select col' or selected_column_y == 'select col':
+    #         return fig
+    #     elif jsonified_cleaned_data:
+    #         dff = pd.read_json(jsonified_cleaned_data, orient='split')
+    #         if isinstance(selected_column_x, list) and len(selected_column_x) == 2:
+    #             figM = make_subplots(rows=1, cols=2, subplot_titles=(selected_column_x[0], selected_column_x[1]))
+    #             print(f"type(selected_column_x)={type(selected_column_x)}")
+    #             print(f"selected_column_x[0]={selected_column_x[1]}")
+    #             print(f"type(selected_column_x[0])={type(selected_column_x[1])}")
+                
+    #             fig1 = px.box(dff, x=selected_column_x[0], y=selected_column_y, color=selected_column_x[1])
+    #             fig2 = px.box(dff, x=selected_column_x[1], y=selected_column_y, color=selected_column_x[1])
+    #             figM.add_trace(fig1.data[0], row=1, col=1)
+    #             figM.add_trace(fig2.data[0], row=1, col=2)
+    #             return figM
+    #         else:
+    #             figA = px.box(dff, x=selected_column_x, y=selected_column_y)
+    #             return figA
+    #         return fig
+    #     else:
+    #         fig = go.Figure()
+    #         fig.update_layout(title='No Data to Display')
+    #         return fig
+
+    #     return fig
+    
+        # functioning
+        # fig = go.Figure()
+        # fig.update_layout(title='No Data to Display')
+        # if selected_column_x == 'select col' or selected_column_y == 'select col':
+        #     return fig
+        # elif jsonified_cleaned_data:
+        #     dff = pd.read_json(jsonified_cleaned_data, orient='split')
+        #     if isinstance(selected_column_x, list) and len(selected_column_x) == 2:
+        #         fig = make_subplots(rows=1, cols=2, subplot_titles=(selected_column_x[0], selected_column_x[1]))
+        #         fig1 = px.box(dff, x=selected_column_x[0], y=selected_column_y)
+        #         print(f"type(figs2)={type(fig1)}")
+        #         fig2 = px.box(dff, x=selected_column_x[1], y=selected_column_y, color=selected_column_x[0])
+        #         print(f"type(figs2)={type(fig2)}")
+        #         fig.add_trace(fig1.data[0], row=1, col=1)
+        #         fig.add_trace(fig2.data[0], row=1, col=2)
+        #         print(f"type(figx)={type(fig)}")
+        #     else:
+        #         fig = px.box(dff, x=selected_column_x, y=selected_column_y)
+        #         print(f"type(fig)={type(fig)}")
+        #     return fig
+        # else:
+        #     fig = go.Figure()
+        #     fig.update_layout(title='No Data to Display')
+        #     return fig
+
+        # return fig
+
+        # fig = go.Figure()
+        # fig.update_layout(title='No Data to Display')
+        # if selected_column_x == 'select col' or selected_column_y == 'select col':
+        #     return fig
+        # elif jsonified_cleaned_data:
+        #     dff = pd.read_json(jsonified_cleaned_data, orient='split')
+        #     print(f"dff ....")
+        #     print(f"selected_column_y = {selected_column_y}")
+        #     print(f"selected_column_x = {selected_column_x}")
+        #     print(f"type(selected_column_x) = {type(selected_column_x)}")
+        #     #print(dff.head(10))
+        #     fig = px.box(dff, x=selected_column_x, y = selected_column_y)
+        #     # if isinstance(selected_column_x, list) and len(selected_column_x) == 2:
+        #     #     print("is list .... create fig 2")
+        #     #     fig2 = px.box(dff, x=selected_column_x[0], y=selected_column_y, color=selected_column_x[1])
+        #     #     fig2.update_layout(title='combined')
+        #     #     fig.add_trace(fig2.data[0])
+        #     return fig
+        # else:
+        #     fig = go.Figure()
+        #     fig.update_layout(title='No Data to Display')
+        #     return fig
+        print(f"start update_boxplot")
+        figs = []
         fig = go.Figure()
         fig.update_layout(title='No Data to Display')
         if selected_column_x == 'select col' or selected_column_y == 'select col':
             return fig
         elif jsonified_cleaned_data:
             dff = pd.read_json(jsonified_cleaned_data, orient='split')
-            #print(f"dff ....")
-            #print(dff.head(10))
-            fig = px.box(dff, x=selected_column_x, y = selected_column_y)
-            return fig
-        else:
-            fig = go.Figure()
-            fig.update_layout(title='No Data to Display')
-            return fig
+            print(f"dff ....")
+            print(dff.head(10))
+            print(f"selected_column_y = {selected_column_y}")
+            print(f"selected_column_x = {selected_column_x}")
+            print(f"type(selected_column_x) = {type(selected_column_x)}")
+            print(f"len(figs) = {len(figs)}")
+            figs.append(px.box(dff, x=selected_column_x, y=selected_column_y))
+            print(f"type(figs1)={type(figs[-1])}")
+            print(f"len(figs) = {len(figs)}")
+            if isinstance(selected_column_x, list) and len(selected_column_x) == 2:
+                figs.append(px.box(dff, x=selected_column_x[0], y=selected_column_y))
+                print(f"type(figs2)={type(figs[-1])}")
+                figs.append(px.box(dff, x=selected_column_x[1], y=selected_column_y, color=selected_column_x[0]))
+                print(f"type(figs3)={type(figs[-1])}")
+            print("now we create the subplots")
+            fig = make_subplots(rows=2, cols=2, subplot_titles=(selected_column_x[0], "other column"))
+            print(f"len(figs) = {len(figs)}")
+            for idx, figsub in enumerate(figs):
+                print(f"in for loop with idx = {idx}")
+                print(f"type(figsub)={type(figsub)}")
+                loc_x = (idx+1) % 2
+                loc_y = (idx+1) // 2
+                print(f"fig.add_traces(figsub[{idx}].data[0], row = {loc_x}, col = {loc_y}")
+                fig.add_trace(figsub[idx].data[0], row=loc_x, col=loc_y)
+    
+
+        return fig
+
+
+        #     if isinstance(selected_column_x, list) and len(selected_column_x) == 2:
+        #         fig = make_subplots(rows=1, cols=2, subplot_titles=(selected_column_x[0], selected_column_x[1]))
+        #         fig1 = px.box(dff, x=selected_column_x[0], y=selected_column_y)
+        #         fig2 = px.box(dff, x=selected_column_x[1], y=selected_column_y, color=selected_column_x[0])
+        #         fig.add_trace(fig1.data[0], row=1, col=1)
+        #         fig.add_trace(fig2.data[0], row=1, col=2)
+        #     else:
+        #         fig = px.box(dff, x=selected_column_x, y=selected_column_y)
+        #     return fig
+
+        # figs = []
+        # fig = go.Figure()
+        # fig.update_layout(title='No Data to Display')
+        # if selected_column_x == 'select col' or selected_column_y == 'select col':
+        #     return fig
+        # elif jsonified_cleaned_data:
+        #     dff = pd.read_json(jsonified_cleaned_data, orient='split')
+        #     figs.append(px.box(dff, x=selected_column_x, y=selected_column_y))
+        #     if isinstance(selected_column_x, list) and len(selected_column_x) == 2:
+        #         figs.append(px.box(dff, x=selected_column_x[0], y=selected_column_y))
+        #         figs.append(px.box(dff, x=selected_column_x[1], y=selected_column_y, color=selected_column_x[0]))
+        #     fig = make_subplots(rows=2, cols=2, subplot_titles=(selected_column_x[0], "other column"))
+        #     for idx, figsub in enumerate(figs):
+        #         if isinstance(figsub, go.Box):
+        #             loc_x = (idx+1) % 2
+        #             loc_y = (idx+1) // 2
+        #             fig.add_trace(figsub.data[0], row=loc_x, col=loc_y)
+                    
+        # return fig
+                
+        # return fig
         
+
     @app.callback(
         Output('pg4_datatable', 'data'),
         [Input('data-store', 'data')],
